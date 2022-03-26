@@ -1,0 +1,72 @@
+#pragma config FOSC = HS        // Oscillator Selection bits (HS oscillator: High-speed crystal/resonator on RA6/OSC2/CLKOUT and RA7/OSC1/CLKIN)
+#pragma config WDTE = OFF       // Watchdog Timer Enable bit (WDT disabled and can be enabled by SWDTEN bit of the WDTCON register)
+#pragma config PWRTE = OFF      // Power-up Timer Enable bit (PWRT disabled)
+#pragma config MCLRE = OFF      // RE3/MCLR pin function select bit (RE3/MCLR pin function is digital input, MCLR internally tied to VDD)
+#pragma config CP = OFF         // Code Protection bit (Program memory code protection is disabled)
+#pragma config CPD = OFF        // Data Code Protection bit (Data memory code protection is disabled)
+#pragma config BOREN = ON       // Brown Out Reset Selection bits (BOR enabled)
+#pragma config IESO = ON        // Internal External Switchover bit (Internal/External Switchover mode is enabled)
+#pragma config FCMEN = ON       // Fail-Safe Clock Monitor Enabled bit (Fail-Safe Clock Monitor is enabled)
+#pragma config LVP = OFF        // Low Voltage Programming Enable bit (RB3 pin has digital I/O, HV on MCLR must be used for programming)
+#pragma config BOR4V = BOR40V   // Brown-out Reset Selection bit (Brown-out Reset set to 4.0V)
+#pragma config WRT = OFF        // Flash Program Memory Self Write Enable bits (Write protection off)
+
+#include <xc.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#define _XTAL_FREQ 2000000 //Crystal Oscillator Frequency
+
+#define Encoder_SW PORTBbits.RB3
+#define Encoder_DT PORTBbits.RB0
+#define Encoder_CLK PORTBbits.RB5
+
+int counter; // It will hold the count of rotary encoder.
+int position; // It will store the rotary encoder position.
+int brightness = 20;
+
+void sw_delayms(unsigned int d){
+    int x, y;
+    for(x=0;x<d;x++)
+    for(y=0;y<=1275;y++);
+}
+
+void main(void) {
+    
+    TRISB = 0x00;
+    PORTB = 0x00;
+    ANSEL = 0x00;
+    ANSELH = 0x00;
+    T2CON = 0x04; //No pre/post-scaler config
+    PR2 = 100; //Cycle time
+    
+    PSTRCONbits.STRB = 1; //Steering Enable bit B
+    PSTRCONbits.STRC = 1; //Steering Enable bit C
+    PSTRCONbits.STRD = 1; //Steering Enable bit D
+    CCP1CONbits.CCP1M = 0b1100; //Configure P1B, P1C, & P1D
+
+    position = Encoder_CLK;// Sorted the CLK position on system init, before the while loop start.
+    
+    while(1){
+        if (Encoder_SW == 0){
+            sw_delayms(20);
+            if (Encoder_SW == 0){
+                // TODO: button press
+            }
+            }
+        }                       
+       if (Encoder_CLK != position){
+            if (Encoder_DT != position){ // ClockWise
+                if (brightness <= 0)
+                    CCPR1L = (brightness += 20); //Duty cycle
+            }
+            else{ // Counter Clockwise
+                if (brightness >= 100)
+                    CCPR1L = (brightness -= 20); //Duty cycle
+            }           
+        }
+        
+        position = Encoder_CLK;    
+    
+    return;
+}
