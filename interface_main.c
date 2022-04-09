@@ -31,6 +31,196 @@
 #define MODE_TEMPERATURE 2
 
 
+
+void testingPhotoresistor()
+{
+    // PORTB Tri-State Register
+    TRISB = 0b10000000; // Port B is output
+    TRISA = 0xff;
+    
+    // PORTB Register
+    PORTA = 0x0;
+    PORTB = 0b10000000; // PORT B is < V_IL
+    
+    // Analog Select Register
+    ANSEL = 0x0;
+    ANSELbits.ANS0 = 1; // A0 Analog Input
+    
+    // Analog Select High Register
+    ANSELH = 0x0;
+        
+    // ADC Control Register 0
+    ADCON0bits.ADCS = 0b11; // ADC Conversion Clock Select, FRC (internal oscillator)
+    ADCON0bits.CHS = 0b0000; // Analog Channel Select, AN0
+    
+    // ADC Control Register 1
+    ADCON1bits.VCFG1 = 0; // Voltage Ref, VSS
+    ADCON1bits.VCFG0 = 0; // Voltage Ref, VDD
+    ADCON1bits.ADFM = 1; // ADC Result Format, Right Justified
+    
+    // Peripheral Interrupt request register
+    PIR1bits.ADIF = 0; // ADC interrupt flag
+    
+    // Peripheral Interrupt Enables
+    PIE1bits.ADIE = 1; // ADC Interrupt enable bit
+
+    ADCON0bits.ADON = 1; // ADC Enable Bit
+    RB0 = 0;
+    RB1 = 0; 
+    RB3 = 0; 
+    RB2 = 1;
+        // 4 wait the required acquisition time
+    unsigned short photoResult; 
+        // Start Conversion
+        ADCON0bits.GO = 1;
+
+        while(ADCON0bits.GO == 1); // Wait till conversion is done
+        
+        // Read results, stored in two registers (10 bit resolution)
+        photoResult = 0x0000;
+        photoResult = ADRESH;
+        photoResult = photoResult << 8;
+        photoResult = photoResult | ADRESL;
+        
+        // Clear all LEDs
+        RB0 = 0;
+        RB1 = 0;
+        RB2 = 0;
+        RB3 = 0;
+        
+
+        PIR1bits.ADIF = 0; // ADC interrupt flag
+       
+    
+    unsigned short photoTemp = photoResult >> 6; 
+    if (photoTemp & 1){
+        RB0 = 1;
+    }
+    if (photoTemp & 2) {
+        RB1 = 1;
+    }
+    if (photoTemp & 4) {
+        RB2 = 1;
+    }
+    if (photoTemp & 8) {
+        RB3 = 1;
+    }
+    
+    //test Photoresistor
+    
+}
+void temperature_Farenheit()
+{
+    // temp is -55 to 125 -55 = 0 v
+    //125 = 5 v in Celsius, -67, 257F. 1024 = 5v 0 = 0v 
+    //every bit is .32640625 degrees F starting from -67
+    //set temp temp = .32640625*result - 67; 
+    //Temperature calculation; 
+    //used for calculating temp
+    unsigned short resultTemp; 
+    //A temporary variable to help calculate the temperature
+    unsigned short temp;
+    //A variable for temperature
+    double temperature; 
+    
+    if(resultTemp & 1)
+    {
+        temp = temp + 1; 
+    }
+    if(resultTemp & 2)
+    {
+        temp = temp + 2;
+    }
+    if(resultTemp & 4)
+    {
+        temp = temp + 4; 
+    }
+    if(resultTemp & 8)
+    {
+        temp = temp + 8;
+    }
+    if(resultTemp & 16)
+    {
+        temp = temp + 16; 
+    }
+    if(resultTemp & 32)
+    {
+        temp = temp + 32;
+    }
+    if(resultTemp & 64)
+    {
+        temp = temp + 64; 
+    }
+    if(resultTemp & 128)
+    {
+        temp = temp + 128;
+    }
+    if(resultTemp & 256)
+    {
+        temp = temp + 256; 
+    }
+    if(resultTemp & 512)
+    {
+        temp = temp + 512;
+    }
+    temperature = .32640625*temp -67; 
+    
+    //Think this is wrong below
+    //temperature = .32640625*result - 67;
+    //write code to display temperature; 
+}
+void temperature_Celsius()
+{
+    unsigned short resultTemp; 
+    //A temporary variable to help calculate the temperature
+    unsigned short temp;
+    
+    //A variable for temperature
+    double temperature; 
+    
+    if(resultTemp & 1)
+    {
+        temp = temp + 1; 
+    }
+    if(resultTemp & 2)
+    {
+        temp = temp + 2;
+    }
+    if(resultTemp & 4)
+    {
+        temp = temp + 4; 
+    }
+    if(resultTemp & 8)
+    {
+        temp = temp + 8;
+    }
+    if(resultTemp & 16)
+    {
+        temp = temp + 16; 
+    }
+    if(resultTemp & 32)
+    {
+        temp = temp + 32;
+    }
+    if(resultTemp & 64)
+    {
+        temp = temp + 64; 
+    }
+    if(resultTemp & 128)
+    {
+        temp = temp + 128;
+    }
+    if(resultTemp & 256)
+    {
+        temp = temp + 256; 
+    }
+    if(resultTemp & 512)
+    {
+        temp = temp + 512;
+    }
+    temperature = .17578125*temp - 55;
+    //write code to display temperature 
+}
 void displayClock() 
 {
     RB0 = 0;
@@ -63,8 +253,8 @@ void interface(){
     TRISE = 0x0;
     
     while(1){
-        
         int displayMode = 0;
+
         LEDControl(); 
         while(displayMode == 0)
         {
@@ -96,9 +286,12 @@ void interface(){
 
             }
         }
+        //using this mode to test the photo resistor; 
         while(displayMode == MODE_CLOCK)
         {
-            displayClock(); 
+            
+            testingPhotoresistor(); 
+            //displayClock(); 
             if(RE3 == 0 && RB5 == 0)
             {
                 while(RE3== 0 && RB5 == 0);
