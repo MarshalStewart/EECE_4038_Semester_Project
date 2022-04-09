@@ -17,19 +17,13 @@
 
 #define _XTAL_FREQ 2000000 //Crystal Oscillator Frequency
 
-#define Encoder_SW PORTBbits.RB3
-#define Encoder_DT PORTBbits.RB0
-#define Encoder_CLK PORTBbits.RB5
+#define Encoder_SW PORTBbits.RB3 //encoder switch
+#define Encoder_DT PORTBbits.RB0 //encoder dt
+#define Encoder_CLK PORTBbits.RB5 //encoder clock
 
-int counter; // It will hold the count of rotary encoder.
-int position; // It will store the rotary encoder position.
 int brightness = 20;
-
-void sw_delayms(unsigned int d){
-    int x, y;
-    for(x=0;x<d;x++)
-    for(y=0;y<=1275;y++);
-}
+int colorIncrement = 2;
+//need to add a default color temperature
 
 void main(void) {
     
@@ -38,35 +32,61 @@ void main(void) {
     ANSEL = 0x00;
     ANSELH = 0x00;
     T2CON = 0x04; //No pre/post-scaler config
-    PR2 = 100; //Cycle time
+    PR2 = 101; //PWM Freq/Cycle time
+    
+    TRISBbits.TRISB0 = 1;
+    TRISBbits.TRISB3 = 1;
+    TRISBbits.TRISB5 = 1;
     
     PSTRCONbits.STRB = 1; //Steering Enable bit B
     PSTRCONbits.STRC = 1; //Steering Enable bit C
     PSTRCONbits.STRD = 1; //Steering Enable bit D
-    CCP1CONbits.CCP1M = 0b1100; //Configure P1B, P1C, & P1D
-
-    position = Encoder_CLK;// Sorted the CLK position on system init, before the while loop start.
+    
+    //P1C = RB1, P1B = RB2, P1D = RB4
+    CCP1CONbits.P1M = 0x00; //Single output; P1A modulated; P1B, P1C, P1D assigned as port pins
+    CCP1CONbits.CCP1M = 0b1100; //Configure P1B, P1C, & P1D (RGB LEDs)
     
     while(1){
-        if (Encoder_SW == 0){
-            sw_delayms(20);
-            if (Encoder_SW == 0){
-                // TODO: button press
+        
+        // Color control
+        if (Encoder_SW == 0){ // Button press
+            while(Encoder_SW == 0); // Delay
+            switch(colorIncrement){
+                case 1: // Coldest color temp
+                    //CPR1L = color temperature
+                    colorIncrement++;
+                    break;
+                case 2:
+                    //CPR1L = color temperature
+                    colorIncrement++;
+                    break;
+                case 3:
+                    //CPR1L = color temperature
+                    colorIncrement++;
+                    break;
+                case 4:
+                    //CPR1L = color temperature
+                    colorIncrement++;
+                    break;
+                case 5: // Warmest color temp
+                    //CPR1L = color temperature
+                    colorIncrement = 1;
+                    break;
             }
-            }
-        }                       
-       if (Encoder_CLK != position){
-            if (Encoder_DT != position){ // ClockWise
-                if (brightness <= 0)
-                    CCPR1L = (brightness += 20); //Duty cycle
-            }
-            else{ // Counter Clockwise
-                if (brightness >= 100)
-                    CCPR1L = (brightness -= 20); //Duty cycle
-            }           
         }
         
-        position = Encoder_CLK;    
+        // Brightness control
+        if (Encoder_DT == 1 && Encoder_CLK == 0){ // Counterclockwise
+            brightness = brightness - 10;
+            CCPR1L = brightness;
+            while(Encoder_DT != 1 || Encoder_CLK != 1); // Delay
+        }
+        else if (Encoder_DT == 0 && Encoder_CLK == 1){ // Clockwise
+            brightness = brightness + 10;
+            CCPR1L = brightness;
+            while(Encoder_DT != 1 || Encoder_CLK != 1); // Delay
+        }
     
     return;
+    }
 }
