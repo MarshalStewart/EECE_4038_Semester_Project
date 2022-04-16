@@ -19,7 +19,12 @@
 
 #define Encoder_SW PORTBbits.RB3 //encoder switch
 #define Encoder_DT PORTBbits.RB0 //encoder dt
-#define Encoder_CLK PORTBbits.RB5 //encoder clock
+#define Encoder_CLK PORTBbits.RB7 //encoder clock
+
+//rotary encoder state variables
+int lastStateCLK; //prev state of rotary encoder clock
+//unsigned long lastButton = 0; //debounce rot switch
+//int btnState;
 
 int brightness = 20;
 int colorIncrement = 2;
@@ -36,7 +41,7 @@ void main(void) {
     
     TRISBbits.TRISB0 = 1;
     TRISBbits.TRISB3 = 1;
-    TRISBbits.TRISB5 = 1;
+    TRISBbits.TRISB7 = 1;
     
     PSTRCONbits.STRB = 1; //Steering Enable bit B
     PSTRCONbits.STRC = 1; //Steering Enable bit C
@@ -46,47 +51,59 @@ void main(void) {
     CCP1CONbits.P1M = 0x00; //Single output; P1A modulated; P1B, P1C, P1D assigned as port pins
     CCP1CONbits.CCP1M = 0b1100; //Configure P1B, P1C, & P1D (RGB LEDs)
     
+    //initial conditions
+    lastStateCLK = Encoder_CLK;
+    CCPR1L = brightness; 
+    
     while(1){
         
-        // Color control
-        if (Encoder_SW == 0){ // Button press
-            while(Encoder_SW == 0); // Delay
-            switch(colorIncrement){
-                case 1: // Coldest color temp
-                    //CPR1L = color temperature
-                    colorIncrement++;
-                    break;
-                case 2:
-                    //CPR1L = color temperature
-                    colorIncrement++;
-                    break;
-                case 3:
-                    //CPR1L = color temperature
-                    colorIncrement++;
-                    break;
-                case 4:
-                    //CPR1L = color temperature
-                    colorIncrement++;
-                    break;
-                case 5: // Warmest color temp
-                    //CPR1L = color temperature
-                    colorIncrement = 1;
-                    break;
+        if(Encoder_CLK != lastStateCLK && Encoder_CLK == 1){
+            //counter clockwise
+            if(Encoder_DT != Encoder_CLK && brightness > 0){
+                brightness = brightness - 10;
+                CCPR1L = brightness;
+            }
+            //clockwise
+            else if(Encoder_DT == Encoder_CLK && brightness < 100){
+               brightness = brightness + 10;
+               CCPR1L = brightness;
             }
         }
         
-        // Brightness control
-        if (Encoder_DT == 1 && Encoder_CLK == 0){ // Counterclockwise
-            brightness = brightness - 10;
-            CCPR1L = brightness;
-            while(Encoder_DT != 1 || Encoder_CLK != 1); // Delay
-        }
-        else if (Encoder_DT == 0 && Encoder_CLK == 1){ // Clockwise
-            brightness = brightness + 10;
-            CCPR1L = brightness;
-            while(Encoder_DT != 1 || Encoder_CLK != 1); // Delay
-        }
+        lastStateCLK = Encoder_CLK;
+        
+        // Color control
+        
+//        btnState = Encoder_SW;
+        
+//        if (Encoder_SW == 1){ // Button press
+//            while(Encoder_SW == 1); // Delay
+//            switch(colorIncrement){
+//                case 1: // Coldest color temp
+//                    CCPR1L = 100;
+//                    colorIncrement++;
+//                    break;
+//                case 2:
+//                    CCPR1L = 80;
+//                    colorIncrement++;
+//                    break;
+//                case 3:
+//                    CCPR1L = 60;
+//                    colorIncrement++;
+//                    break;
+//                case 4:
+//                    CCPR1L = 20;
+//                    colorIncrement++;
+//                    break;
+//                case 5: // Warmest color temp
+//                    CCPR1L = 0;
+//                    colorIncrement = 1;
+//                    break;
+//            }
+//        }
+    
+        __delay_ms(1);
+    }
     
     return;
-    }
 }
